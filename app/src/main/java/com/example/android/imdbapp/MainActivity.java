@@ -27,16 +27,22 @@ import org.json.JSONObject;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.ToDoubleBiFunction;
 
 import cz.msebera.android.httpclient.Header;
 import cz.msebera.android.httpclient.protocol.HTTP;
 
 public class MainActivity extends AppCompatActivity {
 
+    //TODO CHECK IF A FILM EXICT , Dont add it any more
+    //TODO IF No Movie has been searched.dont save .clear current list
+
+
+
      //String url = "https://www.omdbapi.com/?t=saw&apikey=d347e962" ;
 
     String BaseURL = "http://www.omdbapi.com/?apikey=d347e962";
-    List<Search> currentList;
+    List<Search> currentList = new ArrayList<>();
 
     RecyclerView recyclerViewMovies;
     @Override
@@ -78,19 +84,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
 
-
                 SaveToDb();
 
-                AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
-                alertDialog.setTitle("Saved");
-                alertDialog.setMessage("List successfully saved in offline DateBase");
-                alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        });
-                alertDialog.show();
+
             }
         });
 
@@ -161,9 +157,41 @@ public class MainActivity extends AppCompatActivity {
 
         MySQLHelper mySQLHelper = new MySQLHelper(MainActivity.this, "dbMovies", null, 1);
 
-        for (int i = 0 ; i<currentList.size(); i++){
-            Search movie = currentList.get(i);
-            mySQLHelper.inserToDB(movie);
+        int added = 0;
+        int updated = 0;
+        String title = "";
+        String msg = "";
+
+        if ( currentList.size()>0 ){
+
+            for (int i = 0; i < currentList.size(); i++) {
+                Search movie = currentList.get(i);
+                if (!mySQLHelper.isExist(movie.getImdbID())) {
+                    Log.i("MYTAG", "added");
+                    mySQLHelper.inserToDB(movie);
+                    added += 1;
+                }else{
+                    mySQLHelper.updateToDB(movie);
+                    updated+= 1;
+                }
+
+            }
+
+            AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+            alertDialog.setTitle("Save Result");
+            alertDialog.setMessage("Database updated ! " + "\n" +
+                                    "Rows Added= " +added + "\n" +
+                                    "Rows Updated= " +updated );
+
+            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                    new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+            alertDialog.show();
+        }else{
+            Toast.makeText(MainActivity.this, "No Movie to add to Database", Toast.LENGTH_LONG).show();
         }
 
 
